@@ -46,7 +46,9 @@ public class NeoforgePlatformImpl implements RRVPlatform {
     public String getModNamespaceForItem(ItemStack stack) {
         String namespace = "minecraft";
         if (Minecraft.getInstance().level != null) {
-            namespace = stack.getItem().getCreatorModId(Minecraft.getInstance().level.registryAccess(), stack);
+            String creatorModId = stack.getItem().getCreatorModId(Minecraft.getInstance().level.registryAccess(), stack);
+            if (creatorModId != null)
+                namespace = creatorModId;
             //~ if >26 'getItemHolder'->'typeHolder'
             var holderNamespace = stack.typeHolder().unwrapKey().orElseThrow().identifier().getNamespace();
             if (holderNamespace.equals(namespace) && stack.hasNonDefault(DataComponents.ITEM_MODEL)) {

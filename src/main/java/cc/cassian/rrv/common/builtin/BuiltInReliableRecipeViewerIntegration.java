@@ -228,11 +228,13 @@ public class BuiltInReliableRecipeViewerIntegration implements ReliableRecipeVie
             villagerProfessionRegistryLookup.listElements().forEach((professionReference) -> {
                 professionReference.value().tradeSetsByLevel().forEach((level, tradeSetKey) -> {
                     //~ if >26.2 '.getTrades'->'.trades' {
-                    var trades = tradeSetRegistryLookup.getOrThrow(tradeSetKey).value().getTrades();
-                    //~}
-                    trades.forEach(villagerTradeHolder -> {
-                        recipeList.add(new VillagerServerRecipe(professionReference.key(), level, villagerTradeHolder.value(), villagerTradeHolder.unwrapKey().map(ResourceKey::identifier).orElse(null)));
+                    var trades = tradeSetRegistryLookup.get(tradeSetKey);
+                    trades.ifPresent(tradeSetReference -> {
+                        tradeSetReference.value().getTrades().forEach(villagerTradeHolder -> {
+                            recipeList.add(new VillagerServerRecipe(professionReference.key(), level, villagerTradeHolder.value(), villagerTradeHolder.unwrapKey().map(ResourceKey::identifier).orElse(null)));
+                        });
                     });
+                    //~}
                 });
             });
 

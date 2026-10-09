@@ -7,8 +7,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
-//~ if >26.3 'SpriteIconButton.CenteredIcon'->'SpriteIconButton'
-public class ReliableSpriteIconButton.CenteredIcon extends SpriteIconButton.CenteredIcon {
+//~ if >26.3 ' SpriteIconButton.CenteredIcon'->' SpriteIconButton'
+public class ReliableSpriteIconButton extends SpriteIconButton.CenteredIcon {
 
 	//? if <26.2 {
 	public ReliableSpriteIconButton(int size, Component message, int spriteSize, Identifier sprite, OnPress onPress) {

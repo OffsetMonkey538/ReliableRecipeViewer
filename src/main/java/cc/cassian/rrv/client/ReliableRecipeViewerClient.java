@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.RecipeMap;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -74,7 +75,7 @@ public class ReliableRecipeViewerClient {
         return mc.player != null && RrvUtil.hasPermission(mc.player) && isKeyDown(ReliableRecipeViewerClient.USE_CHEATMODE);
     }
 
-    public static Component addNamespaceTooltip(String modName, List<Component> tooltip, boolean inItemView) {
+    public static @Nullable Component addNamespaceTooltip(String modName, List<Component> tooltip, boolean inItemView) {
         if (!ModCompat.hasModNamespaceModsInstalled() || inItemView) {
             MutableComponent namespace = Component.literal(modName).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC);
             if (((inItemView && Configs.CLIENT_SETTINGS.showNamespaceTooltip().equals(NamespaceTooltip.IN_ITEM_VIEW)) ||
@@ -93,7 +94,7 @@ public class ReliableRecipeViewerClient {
         return null;
     }
 
-    public static Component addNamespaceTooltip(ItemStack stack, List<Component> tooltip, boolean inItemView) {
+    public static @Nullable Component addNamespaceTooltip(ItemStack stack, List<Component> tooltip, boolean inItemView) {
         return addNamespaceTooltip(RRVPlatform.INSTANCE.getModNameForItem(stack), tooltip, inItemView);
     }
 }

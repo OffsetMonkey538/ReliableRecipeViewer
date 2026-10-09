@@ -116,7 +116,7 @@ public class NeoForgeClientEntrypoint {
     }
 
     @SubscribeEvent
-    public static void receiveRecipes(ItemTooltipEvent event) {
+    public static void addTooltip(ItemTooltipEvent event) {
         ReliableRecipeViewerClient.addNamespaceTooltip(event.getItemStack(), event.getToolTip(), false);
     }
 
