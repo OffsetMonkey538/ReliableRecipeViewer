@@ -19,6 +19,7 @@ import cc.cassian.rrv.common.recipe.inventory.SlotContent;
 import cc.cassian.rrv.common.rendering.RrvGuiRenderHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -195,6 +196,12 @@ public class EntityClientRecipe implements ReliableClientRecipe {
         Component entityName = this.entityType.getDescription();
 
         context.guiGraphics().blitSprite(RenderPipelines.GUI_TEXTURED, DROPS_SLOT, 105, 3, 54, 18 * dropsRows);
+
+        if (this.dropsPages != 1) {
+            final Font font = Minecraft.getInstance().font;
+            final String text = this.currentDropsPage + 1 + "/" + this.dropsPages;
+            context.guiGraphics().text(font, text, 132 - font.width(text) / 2, 136 - font.lineHeight / 2, 0xFF404040, false);
+        }
 
         this.renderEntity(context);
 
