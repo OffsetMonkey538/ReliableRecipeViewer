@@ -314,7 +314,7 @@ public class RecipeViewMenu {
         return recipesOnPage;
     }
 
-    protected void updateByPage() {
+    public void updateByPage() {
         this.additionalStackModifiers.clear();
         this.optionalSlotRenderers.clear();
 
