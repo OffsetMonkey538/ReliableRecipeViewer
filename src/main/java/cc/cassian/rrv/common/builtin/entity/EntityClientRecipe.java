@@ -5,23 +5,26 @@ import cc.cassian.rrv.api.recipe.ReliableClientRecipeType;
 import cc.cassian.rrv.api.recipe.ReliableClientRecipe;
 import cc.cassian.rrv.api.util.MobFood;
 import cc.cassian.rrv.client.ReliableRecipeViewerClient;
+import cc.cassian.rrv.client.util.RRVClientUtil;
 import cc.cassian.rrv.client.util.RRVExtendedContainerScreen;
 import cc.cassian.rrv.common.RRVPlatform;
 import cc.cassian.rrv.common.ReliableRecipeViewer;
 import cc.cassian.rrv.common.integration.ItemDescriptionsCompat;
 import cc.cassian.rrv.common.integration.ModCompat;
 import cc.cassian.rrv.common.overlay.itemlist.view.ItemFilters;
+import cc.cassian.rrv.common.overlay.itemlist.view.ReliableSpriteIconButton;
 import cc.cassian.rrv.common.recipe.inventory.RecipeViewMenu;
+import cc.cassian.rrv.common.recipe.inventory.RecipeViewScreen;
 import cc.cassian.rrv.common.recipe.inventory.SlotContent;
 import cc.cassian.rrv.common.rendering.RrvGuiRenderHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.animal.Animal;
@@ -32,7 +35,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static cc.cassian.rrv.common.recipe.ItemViewRecipes.MOB_FOOD;
 
@@ -40,14 +42,24 @@ public class EntityClientRecipe implements ReliableClientRecipe {
     private static final Identifier FOOD_SLOT_TEXTURE = ReliableRecipeViewer.of("textures/gui/food_slot.png");
     private static final Identifier FOOD_EMPTY = Identifier.withDefaultNamespace("hud/food_empty");
     private static final Identifier FOOD_FULL = Identifier.withDefaultNamespace("hud/food_full");
+    private static final Identifier DROPS_SLOT = ReliableRecipeViewer.of("entity_drops_slot");
+    private static final Identifier LEFT_ARROW = ReliableRecipeViewer.of("arrow/left");
+    private static final Identifier LEFT_ARROW_DISABLED = ReliableRecipeViewer.of("arrow/left_disabled");
+    private static final Identifier RIGHT_ARROW = ReliableRecipeViewer.of("arrow/right");
+    private static final Identifier RIGHT_ARROW_DISABLED = ReliableRecipeViewer.of("arrow/right_disabled");
     private final EntityType<?> entityType;
     private final Identifier entityId;
     private final List<SlotContent> drops;
     private final Identifier fieldGuideSprite;
     private final boolean hasFieldGuideSprite;
+    private final int dropsRows;
+    private final int dropsPages;
+    private final ReliableSpriteIconButton nextPageButton;
+    private final ReliableSpriteIconButton prevPageButton;
 
     private LivingEntity previewEntity;
 
+    private int currentDropsPage = 0;
     private int animationTick = 0;
     private boolean hovered = false;
     private boolean renderingFood = false;
@@ -56,20 +68,34 @@ public class EntityClientRecipe implements ReliableClientRecipe {
         this.entityType = serverRecipe.getEntityType();
         this.entityId = entityType.builtInRegistryHolder().key().identifier();
 
-        List<SlotContent> drops = serverRecipe.getDrops();
-        List<SlotContent> dropContents = new ArrayList<>();
+        this.drops = new ArrayList<>(serverRecipe.getDrops());
 
-        for (int i = 0; i < this.getType().getSlotCount(); i++) {
-            if (drops.size() > i)
-                dropContents.add(drops.get(i));
-            else
-                dropContents.add(SlotContent.of());
+        this.dropsRows = Math.clamp(Math.ceilDiv(drops.size(), 3), 3, 7);
+
+        for (int i = 0; i < this.drops.size() % 21; i++) {
+            drops.add(SlotContent.of());
         }
 
-        this.drops = dropContents;
+        this.dropsPages = Math.ceilDiv(this.drops.size(), 21);
+
+        this.prevPageButton = new ReliableSpriteIconButton(12, Component.translatable("rrv.previous_page"), 8, LEFT_ARROW, LEFT_ARROW, LEFT_ARROW_DISABLED, _ -> onPageChangeButtonPressed(-1));
+        this.prevPageButton.active = false;
+        this.prevPageButton.visible = dropsPages != 1;
+
+        this.nextPageButton = new ReliableSpriteIconButton(12, Component.translatable("rrv.next_page"), 8, RIGHT_ARROW, RIGHT_ARROW, RIGHT_ARROW_DISABLED, _ -> onPageChangeButtonPressed(1));
+        this.nextPageButton.active = true;
+        this.nextPageButton.visible = dropsPages != 1;
 
         this.fieldGuideSprite = entityId.withPath("textures/fieldguide/entries/%s.png"::formatted);
         this.hasFieldGuideSprite = Minecraft.getInstance().getResourceManager().getResource(fieldGuideSprite).isPresent();
+    }
+
+    private void onPageChangeButtonPressed(final int offset) {
+        this.currentDropsPage += offset;
+        this.nextPageButton.active = this.currentDropsPage < this.dropsPages - 1;
+        this.prevPageButton.active = this.currentDropsPage >= 1;
+
+        if (RRVClientUtil.currentScreen() instanceof RecipeViewScreen recipeViewScreen) recipeViewScreen.getMenu().updateByPage();
     }
 
     public EntityType<?> getEntityType() {
@@ -83,7 +109,6 @@ public class EntityClientRecipe implements ReliableClientRecipe {
 
     @Override
     public void bindSlots(RecipeViewMenu.SlotFillContext slotFillContext) {
-
         if (previewEntity instanceof Animal animal) {
             if (!MOB_FOOD.containsKey(entityType)) {
                 List<ItemStack> food = new ArrayList<>();
@@ -107,9 +132,8 @@ public class EntityClientRecipe implements ReliableClientRecipe {
         }
 
         for (int i = 0; i < this.drops.size(); i++) {
-            slotFillContext.bindSlot(i+1, this.drops.get(i));
+            slotFillContext.bindSlot(i + 1, this.drops.get((i + this.currentDropsPage * 21) % this.drops.size()));
         }
-
     }
 
     @Override
@@ -129,7 +153,6 @@ public class EntityClientRecipe implements ReliableClientRecipe {
 
     @Override
     public void tick() {
-
         if (this.hovered)
             return;
 
@@ -160,9 +183,25 @@ public class EntityClientRecipe implements ReliableClientRecipe {
     }
 
     @Override
-    public void renderRecipe(RecipeScreenContext context) {
+    public void addRecipeWidgets(RecipeScreenContext context) {
+        this.prevPageButton.setPosition(context.recipePosition().left() + 107, context.recipePosition().top() + 130);
+        context.widgets().addRecipeWidget(prevPageButton);
 
+        this.nextPageButton.setPosition(context.recipePosition().left() + 145, context.recipePosition().top() + 130);
+        context.widgets().addRecipeWidget(nextPageButton);
+    }
+
+    @Override
+    public void renderRecipe(RecipeScreenContext context) {
         Component entityName = this.entityType.getDescription();
+
+        context.guiGraphics().blitSprite(RenderPipelines.GUI_TEXTURED, DROPS_SLOT, 105, 3, 54, 18 * dropsRows);
+
+        if (this.dropsPages != 1) {
+            final Font font = Minecraft.getInstance().font;
+            final String text = this.currentDropsPage + 1 + "/" + this.dropsPages;
+            context.guiGraphics().text(font, text, 132 - font.width(text) / 2, 136 - font.lineHeight / 2, 0xFF404040, false);
+        }
 
         this.renderEntity(context);
 
